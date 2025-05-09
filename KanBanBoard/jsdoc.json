@@ -1,0 +1,14 @@
+{
+    "tags": {
+      "allowUnknownTags": true
+    },
+    "source": {
+      "include": ["backend/controllers", "backend/models", "backend/middleware", "backend/routes", "backend/app.js"],
+      "excludePattern": "(node_modules|docs|tests)"
+    },
+    "opts": {
+      "destination": "./docs",
+      "recurse": true
+    }
+  }
+  

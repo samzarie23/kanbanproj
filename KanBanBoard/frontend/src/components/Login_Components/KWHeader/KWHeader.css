@@ -1,0 +1,19 @@
+
+@font-face {
+    font-family: 'GeorgiaCustom';
+    src: url('../assets/fonts/georgia.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  
+  .header {
+    text-align: center;
+    font-size: 100px;
+    color: #000000;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-bottom: 0px;
+    font-family: 'GeorgiaCustom', georgia ,sans-serif; 
+  }
+  
