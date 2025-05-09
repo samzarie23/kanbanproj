@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: controllers/taskController.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: controllers/taskController.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { fetchTaskByUser, createTask, assignTask, fetchTaskByAdmin, deleteTask, updateTaskStatus } = require('../models/taskModel.js');
+const { fetchUserByUserId } = require('../models/userModel.js');
+const { sendNotificationEmail, createTaskAssignedEmail } = require('./2faEmail.js');
+const { createNotification } = require('../models/notificationModel.js');
+
+/**
+ * Retrieves tasks assigned to the currently authenticated user.
+ * @param {Object} req - Express request object, containing user info in req.user.
+ * @param {Object} res - Express response object used to return task data or error.
+ */
+exports.getUserTasks = async (req, res) => {
+  try {
+    // get user id from the JWS token
+    const userId = req.user.id; 
+    // call the db to get the tasks for the user
+    const tasks = await fetchTaskByUser(userId);
+    res.json({ tasks });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching tasks' });
+  }
+};
+
+/**
+ * Creates a new task and assigns it to specified users.
+ * Also sends email notifications and creates in-app notifications for assigned users.
+ * @param {Object} req - Express request object containing task details and assigned user IDs.
+ * @param {Object} res - Express response object indicating success or failure.
+ * @property {string} req.body.title - Title of the task.
+ * @property {string} req.body.description - Description of the task.
+ * @property {string} req.body.status - Initial status of the task (e.g., 'To Do').
+ * @property {string} req.body.due_date - Due date of the task.
+ * @property {Array&lt;number>} req.body.assignedUsers - Array of user IDs to assign the task to.
+ */
+exports.makeTask = async (req, res) => {
+  try {
+    // create the task
+    const task = {
+      title: req.body.title,
+      description: req.body.description,
+      status: req.body.status,
+      due_date: req.body.due_date,
+      created_by: req.user.id,
+    }
+    const createdTask = await createTask(task);
+    
+    //get admin information
+    const tempAdmin = await fetchUserByUserId(req.user.id);
+    const admin = {
+      name: tempAdmin.username,
+      email: tempAdmin.email,
+    };
+
+    // assign the task
+    const assignedUsers = req.body.assignedUsers;
+    for(let i = 0; i &lt; assignedUsers.length; i++) {
+      let task_assigned = await assignTask(createdTask, assignedUsers[i]);
+      let user = await fetchUserByUserId(assignedUsers[i]);
+      sendNotificationEmail(user.email, `Task Alert: ${task.title} has been assigned to you`, createTaskAssignedEmail(user.username, task, admin));
+      await createNotification(user.user_id, 'Task Creation', `Task "${task.title}" has been created and assigned to you.`);
+    }
+
+    res.status(201).json({ message: 'Task created and assigned successfully', task: createdTask });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error making task '});
+  }
+};
+
+/**
+ * Retrieves tasks created by the currently authenticated admin user.
+ * @param {Object} req - Express request object containing admin user info.
+ * @param {Object} res - Express response object used to return the list of tasks.
+ */
+exports.getAdminTasks = async (req, res) => {
+  try {
+    // get admin id from the JWS token
+    const userId = req.user.id; 
+    // call the db to get the tasks for the admin
+    const tasks = await fetchTaskByAdmin(userId);
+    res.json({ tasks });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching tasks for admin' });
+  }
+};
+
+/**
+ * Deletes a task from the database.
+ * @param {Object} req - Express request object containing the task ID in the body.
+ * @param {Object} res - Express response object confirming deletion or reporting an error.
+ * @property {number} req.body.taskId - ID of the task to be deleted.
+ */
+exports.deleteTask = async (req, res) => {
+  try {
+    //get task id from request
+    const taskId = req.body.taskId;
+    await deleteTask(taskId);
+    res.status(200).json({ message: 'Task deleted successfully'});
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: 'deleting task error' });
+  }
+};
+
+/**
+ * Updates the status of an existing task.
+ * @param {Object} req - Express request object containing task ID and new status.
+ * @param {Object} res - Express response object confirming the update or reporting an error.
+ * @property {number} req.body.taskId - ID of the task to be updated.
+ * @property {string} req.body.status - New status of the task.
+ */
+exports.updateTaskStatus = async (req, res) => {
+  try {
+    //get task id and new status from request
+    const taskId = req.body.taskId;
+    const taskStatus = req.body.status;
+    await updateTaskStatus(taskId, taskStatus);
+    res.status(200).json({ message: 'Task status updated' });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: 'updating task error' });
+  }
+};
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addComment">addComment</a></li><li><a href="global.html#addCommentToTask">addCommentToTask</a></li><li><a href="global.html#addUser">addUser</a></li><li><a href="global.html#approveTask">approveTask</a></li><li><a href="global.html#assignTask">assignTask</a></li><li><a href="global.html#authenticateJWT">authenticateJWT</a></li><li><a href="global.html#createNotification">createNotification</a></li><li><a href="global.html#createTask">createTask</a></li><li><a href="global.html#createTaskAssignedEmail">createTaskAssignedEmail</a></li><li><a href="global.html#createTaskProgressUpdateEmail">createTaskProgressUpdateEmail</a></li><li><a href="global.html#deleteComment">deleteComment</a></li><li><a href="global.html#deleteDocument">deleteDocument</a></li><li><a href="global.html#deleteTask">deleteTask</a></li><li><a href="global.html#deleteUser">deleteUser</a></li><li><a href="global.html#downloadDocument">downloadDocument</a></li><li><a href="global.html#express">express</a></li><li><a href="global.html#fetchAllUsers">fetchAllUsers</a></li><li><a href="global.html#fetchDocumentById">fetchDocumentById</a></li><li><a href="global.html#fetchDocumentsByTask">fetchDocumentsByTask</a></li><li><a href="global.html#fetchDocumentsByUser">fetchDocumentsByUser</a></li><li><a href="global.html#fetchEmailByUserId">fetchEmailByUserId</a></li><li><a href="global.html#fetchNotificationsByUser">fetchNotificationsByUser</a></li><li><a href="global.html#fetchPasswordByEmail">fetchPasswordByEmail</a></li><li><a href="global.html#fetchPasswordByUserId">fetchPasswordByUserId</a></li><li><a href="global.html#fetchPasswordByUsername">fetchPasswordByUsername</a></li><li><a href="global.html#fetchTaskByAdmin">fetchTaskByAdmin</a></li><li><a href="global.html#fetchTaskById">fetchTaskById</a></li><li><a href="global.html#fetchTaskByUser">fetchTaskByUser</a></li><li><a href="global.html#fetchTaskByUserAndStatus">fetchTaskByUserAndStatus</a></li><li><a href="global.html#fetchUnreadNotificationsNumByUser">fetchUnreadNotificationsNumByUser</a></li><li><a href="global.html#fetchUserAssignedToTask">fetchUserAssignedToTask</a></li><li><a href="global.html#fetchUserByEmail">fetchUserByEmail</a></li><li><a href="global.html#fetchUserByName">fetchUserByName</a></li><li><a href="global.html#fetchUserByUserId">fetchUserByUserId</a></li><li><a href="global.html#fetchUserID">fetchUserID</a></li><li><a href="global.html#fetchUsernameByEmail">fetchUsernameByEmail</a></li><li><a href="global.html#generateCode">generateCode</a></li><li><a href="global.html#getAdminTasks">getAdminTasks</a></li><li><a href="global.html#getCommentByTask">getCommentByTask</a></li><li><a href="global.html#getCommentByUser">getCommentByUser</a></li><li><a href="global.html#getDocumentIdForTask">getDocumentIdForTask</a></li><li><a href="global.html#getPool">getPool</a></li><li><a href="global.html#getRecentComment">getRecentComment</a></li><li><a href="global.html#getTaskComments">getTaskComments</a></li><li><a href="global.html#getUnreadCountByUser">getUnreadCountByUser</a></li><li><a href="global.html#getUserTasks">getUserTasks</a></li><li><a href="global.html#initializePool">initializePool</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#makeTask">makeTask</a></li><li><a href="global.html#markNotificationAsRead">markNotificationAsRead</a></li><li><a href="global.html#removeComment">removeComment</a></li><li><a href="global.html#searchUser">searchUser</a></li><li><a href="global.html#sendCodeEmail">sendCodeEmail</a></li><li><a href="global.html#sendNotificationEmail">sendNotificationEmail</a></li><li><a href="global.html#tempCodes">tempCodes</a></li><li><a href="global.html#updateComment">updateComment</a></li><li><a href="global.html#updateDepartment">updateDepartment</a></li><li><a href="global.html#updateDocument">updateDocument</a></li><li><a href="global.html#updateEmail">updateEmail</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateTask">updateTask</a></li><li><a href="global.html#updateTaskStatus">updateTaskStatus</a></li><li><a href="global.html#uploadDocument">uploadDocument</a></li><li><a href="global.html#uploadMiddleware">uploadMiddleware</a></li><li><a href="global.html#verifyCode">verifyCode</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri May 02 2025 15:20:47 GMT-0700 (Pacific Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

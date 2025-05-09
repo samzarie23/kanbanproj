@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: controllers/authController.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: controllers/authController.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { fetchUserByEmail, fetchPasswordByEmail } = require('../models/userModel');
+const { generateCode, sendCodeEmail, tempCodes } = require('./2faEmail.js');
+
+/**
+ * Handles user login with email and password.
+ * If credentials are valid, a 2FA code is generated and emailed to the user.
+ *
+ * @param {import('express').Request} req - Express request object, expects `email` and `password` in the body.
+ * @param {import('express').Response} res - Express response object, returns a success message or error status.
+ * @returns {Promise&lt;void>}
+ */
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+
+  // fetch the user using email
+  const user = await fetchUserByEmail(email);
+  // handle if user email does not exist
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+
+  // fetch the stored password hash from the db
+  const storedPasswordResult = await fetchPasswordByEmail(email);
+  // check if a password has been returned
+  if (!storedPasswordResult || storedPasswordResult.length === 0) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+
+  // convert storedPassword to a string
+  let storedPassword = String(storedPasswordResult[0].password);
+
+  // verify the provided password against the stored hashed password
+  const passwordMatches = await bcrypt.compare(password, storedPassword);
+  if (!passwordMatches) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+
+  // send 2fa code email
+  const code = generateCode();
+  tempCodes[email] = code; // store the code
+  sendCodeEmail(email, code);
+
+  return res.json({ message: 'login successful' });
+};
+
+
+/**
+ * Verifies the 2FA code sent to the user's email.
+ * If valid, generates and returns a JWT token.
+ *
+ * @param {import('express').Request} req - Express request object, expects `email` and `code` in the body.
+ * @param {import('express').Response} res - Express response object, returns a JWT token if successful.
+ * @returns {Promise&lt;void>}
+ */
+exports.verifyCode = async (req, res) => {
+  const { email, code } = req.body;
+  
+  // check that user has a code generated and that it matches
+  if (tempCodes[email] &amp;&amp; parseInt(code, 10) === tempCodes[email]) {
+    delete tempCodes[email];  // delete code from temp storage
+
+    // fetch the user using email
+    const user = await fetchUserByEmail(email);
+    // generate jws token
+    // create a payload for the token
+    const payload = {
+      id: user.user_id,
+      role: user.role,
+    };
+
+    // sign the token with the secret key
+    const token = jwt.sign(payload, "KanbanSecretKey", {
+      expiresIn: '2h', 
+    });
+
+    return res.json({ message: '2FA code correct', token });
+  } else {
+    return res.status(400).json({ message: 'Invalid 2FA code' });
+  }
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addComment">addComment</a></li><li><a href="global.html#addCommentToTask">addCommentToTask</a></li><li><a href="global.html#addUser">addUser</a></li><li><a href="global.html#approveTask">approveTask</a></li><li><a href="global.html#assignTask">assignTask</a></li><li><a href="global.html#authenticateJWT">authenticateJWT</a></li><li><a href="global.html#createNotification">createNotification</a></li><li><a href="global.html#createTask">createTask</a></li><li><a href="global.html#createTaskAssignedEmail">createTaskAssignedEmail</a></li><li><a href="global.html#createTaskProgressUpdateEmail">createTaskProgressUpdateEmail</a></li><li><a href="global.html#deleteComment">deleteComment</a></li><li><a href="global.html#deleteDocument">deleteDocument</a></li><li><a href="global.html#deleteTask">deleteTask</a></li><li><a href="global.html#deleteUser">deleteUser</a></li><li><a href="global.html#downloadDocument">downloadDocument</a></li><li><a href="global.html#express">express</a></li><li><a href="global.html#fetchAllUsers">fetchAllUsers</a></li><li><a href="global.html#fetchDocumentById">fetchDocumentById</a></li><li><a href="global.html#fetchDocumentsByTask">fetchDocumentsByTask</a></li><li><a href="global.html#fetchDocumentsByUser">fetchDocumentsByUser</a></li><li><a href="global.html#fetchEmailByUserId">fetchEmailByUserId</a></li><li><a href="global.html#fetchNotificationsByUser">fetchNotificationsByUser</a></li><li><a href="global.html#fetchPasswordByEmail">fetchPasswordByEmail</a></li><li><a href="global.html#fetchPasswordByUserId">fetchPasswordByUserId</a></li><li><a href="global.html#fetchPasswordByUsername">fetchPasswordByUsername</a></li><li><a href="global.html#fetchTaskByAdmin">fetchTaskByAdmin</a></li><li><a href="global.html#fetchTaskById">fetchTaskById</a></li><li><a href="global.html#fetchTaskByUser">fetchTaskByUser</a></li><li><a href="global.html#fetchTaskByUserAndStatus">fetchTaskByUserAndStatus</a></li><li><a href="global.html#fetchUnreadNotificationsNumByUser">fetchUnreadNotificationsNumByUser</a></li><li><a href="global.html#fetchUserAssignedToTask">fetchUserAssignedToTask</a></li><li><a href="global.html#fetchUserByEmail">fetchUserByEmail</a></li><li><a href="global.html#fetchUserByName">fetchUserByName</a></li><li><a href="global.html#fetchUserByUserId">fetchUserByUserId</a></li><li><a href="global.html#fetchUserID">fetchUserID</a></li><li><a href="global.html#fetchUsernameByEmail">fetchUsernameByEmail</a></li><li><a href="global.html#generateCode">generateCode</a></li><li><a href="global.html#getAdminTasks">getAdminTasks</a></li><li><a href="global.html#getCommentByTask">getCommentByTask</a></li><li><a href="global.html#getCommentByUser">getCommentByUser</a></li><li><a href="global.html#getDocumentIdForTask">getDocumentIdForTask</a></li><li><a href="global.html#getPool">getPool</a></li><li><a href="global.html#getRecentComment">getRecentComment</a></li><li><a href="global.html#getTaskComments">getTaskComments</a></li><li><a href="global.html#getUnreadCountByUser">getUnreadCountByUser</a></li><li><a href="global.html#getUserTasks">getUserTasks</a></li><li><a href="global.html#initializePool">initializePool</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#makeTask">makeTask</a></li><li><a href="global.html#markNotificationAsRead">markNotificationAsRead</a></li><li><a href="global.html#removeComment">removeComment</a></li><li><a href="global.html#searchUser">searchUser</a></li><li><a href="global.html#sendCodeEmail">sendCodeEmail</a></li><li><a href="global.html#sendNotificationEmail">sendNotificationEmail</a></li><li><a href="global.html#tempCodes">tempCodes</a></li><li><a href="global.html#updateComment">updateComment</a></li><li><a href="global.html#updateDepartment">updateDepartment</a></li><li><a href="global.html#updateDocument">updateDocument</a></li><li><a href="global.html#updateEmail">updateEmail</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateTask">updateTask</a></li><li><a href="global.html#updateTaskStatus">updateTaskStatus</a></li><li><a href="global.html#uploadDocument">uploadDocument</a></li><li><a href="global.html#uploadMiddleware">uploadMiddleware</a></li><li><a href="global.html#verifyCode">verifyCode</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri May 02 2025 15:20:47 GMT-0700 (Pacific Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

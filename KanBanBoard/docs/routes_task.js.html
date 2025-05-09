@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: routes/task.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: routes/task.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Task routes.
+ * 
+ * Handles fetching tasks, creating them, and deleting them.
+ * There are routes that also handle the approval process. 
+ * These routes connect to the corresponding controller methods in `tasksController.js`.
+ */
+
+const express = require("express");
+const router = express.Router();
+const {getUserTasks, makeTask, getAdminTasks, deleteTask, updateTaskStatus } = require("../controllers/taskController.js");
+const {updateTask, approveTask} = require('../controllers/approvalController.js');
+const { authenticateJWT } = require('../middleware/authenticateJWT');
+
+// set up get request route for task controllers
+router.get("/tasks", authenticateJWT, getUserTasks);
+router.post("/create-task", authenticateJWT, makeTask);
+router.get("/admin-tasks", authenticateJWT, getAdminTasks);
+router.delete("/delete-task", authenticateJWT, deleteTask);
+router.patch("/update-task-status", authenticateJWT, updateTask);
+router.patch("/approve-task", authenticateJWT, approveTask);
+
+// export the router
+module.exports = router;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addComment">addComment</a></li><li><a href="global.html#addCommentToTask">addCommentToTask</a></li><li><a href="global.html#addUser">addUser</a></li><li><a href="global.html#approveTask">approveTask</a></li><li><a href="global.html#assignTask">assignTask</a></li><li><a href="global.html#authenticateJWT">authenticateJWT</a></li><li><a href="global.html#createNotification">createNotification</a></li><li><a href="global.html#createTask">createTask</a></li><li><a href="global.html#createTaskAssignedEmail">createTaskAssignedEmail</a></li><li><a href="global.html#createTaskProgressUpdateEmail">createTaskProgressUpdateEmail</a></li><li><a href="global.html#deleteComment">deleteComment</a></li><li><a href="global.html#deleteDocument">deleteDocument</a></li><li><a href="global.html#deleteTask">deleteTask</a></li><li><a href="global.html#deleteUser">deleteUser</a></li><li><a href="global.html#downloadDocument">downloadDocument</a></li><li><a href="global.html#express">express</a></li><li><a href="global.html#fetchAllUsers">fetchAllUsers</a></li><li><a href="global.html#fetchDocumentById">fetchDocumentById</a></li><li><a href="global.html#fetchDocumentsByTask">fetchDocumentsByTask</a></li><li><a href="global.html#fetchDocumentsByUser">fetchDocumentsByUser</a></li><li><a href="global.html#fetchEmailByUserId">fetchEmailByUserId</a></li><li><a href="global.html#fetchNotificationsByUser">fetchNotificationsByUser</a></li><li><a href="global.html#fetchPasswordByEmail">fetchPasswordByEmail</a></li><li><a href="global.html#fetchPasswordByUserId">fetchPasswordByUserId</a></li><li><a href="global.html#fetchPasswordByUsername">fetchPasswordByUsername</a></li><li><a href="global.html#fetchTaskByAdmin">fetchTaskByAdmin</a></li><li><a href="global.html#fetchTaskById">fetchTaskById</a></li><li><a href="global.html#fetchTaskByUser">fetchTaskByUser</a></li><li><a href="global.html#fetchTaskByUserAndStatus">fetchTaskByUserAndStatus</a></li><li><a href="global.html#fetchUnreadNotificationsNumByUser">fetchUnreadNotificationsNumByUser</a></li><li><a href="global.html#fetchUserAssignedToTask">fetchUserAssignedToTask</a></li><li><a href="global.html#fetchUserByEmail">fetchUserByEmail</a></li><li><a href="global.html#fetchUserByName">fetchUserByName</a></li><li><a href="global.html#fetchUserByUserId">fetchUserByUserId</a></li><li><a href="global.html#fetchUserID">fetchUserID</a></li><li><a href="global.html#fetchUsernameByEmail">fetchUsernameByEmail</a></li><li><a href="global.html#generateCode">generateCode</a></li><li><a href="global.html#getAdminTasks">getAdminTasks</a></li><li><a href="global.html#getCommentByTask">getCommentByTask</a></li><li><a href="global.html#getCommentByUser">getCommentByUser</a></li><li><a href="global.html#getDocumentIdForTask">getDocumentIdForTask</a></li><li><a href="global.html#getPool">getPool</a></li><li><a href="global.html#getRecentComment">getRecentComment</a></li><li><a href="global.html#getTaskComments">getTaskComments</a></li><li><a href="global.html#getUnreadCountByUser">getUnreadCountByUser</a></li><li><a href="global.html#getUserTasks">getUserTasks</a></li><li><a href="global.html#initializePool">initializePool</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#makeTask">makeTask</a></li><li><a href="global.html#markNotificationAsRead">markNotificationAsRead</a></li><li><a href="global.html#removeComment">removeComment</a></li><li><a href="global.html#searchUser">searchUser</a></li><li><a href="global.html#sendCodeEmail">sendCodeEmail</a></li><li><a href="global.html#sendNotificationEmail">sendNotificationEmail</a></li><li><a href="global.html#tempCodes">tempCodes</a></li><li><a href="global.html#updateComment">updateComment</a></li><li><a href="global.html#updateDepartment">updateDepartment</a></li><li><a href="global.html#updateDocument">updateDocument</a></li><li><a href="global.html#updateEmail">updateEmail</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateTask">updateTask</a></li><li><a href="global.html#updateTaskStatus">updateTaskStatus</a></li><li><a href="global.html#uploadDocument">uploadDocument</a></li><li><a href="global.html#uploadMiddleware">uploadMiddleware</a></li><li><a href="global.html#verifyCode">verifyCode</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri May 02 2025 15:20:47 GMT-0700 (Pacific Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

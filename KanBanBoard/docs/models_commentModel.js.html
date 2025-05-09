@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: models/commentModel.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: models/commentModel.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Comment Model for interacting with the SQL Server database.
+ * Handles operations like adding, retrieving, updating, and deleting comments on tasks.
+ */
+
+// Make the connction to the database
+const sql = require('mssql');
+let pool;
+
+// Config for db connection
+const config = {
+    user: 'szadmin',
+    password: 'password123!',
+    server: 'kanbanboardsz.database.windows.net',
+    database: 'kanban_board',
+    options: {
+        encrypt: true,
+        trustServerCertificate: true 
+    }
+};
+
+/**
+ * Initializes the database connection pool.
+ */
+const initializePool = async () => {
+    if (!pool) {
+        try {
+            pool = await sql.connect(config);
+            console.log("Connected to SQL Server");
+        } catch (err) {
+            console.error("Database connection failed: ", err);
+            throw err; 
+        }
+    }
+};
+
+
+/**
+ * Gets the active database connection pool.
+ * Ensures the pool is initialized before returning.
+ * 
+ * @returns {Promise&lt;sql.ConnectionPool>} A connection pool instance.
+ */
+const getPool = async () => {
+    if (!pool) await initializePool();
+    return pool;
+};
+
+// Call function to start the pool
+initializePool();
+
+/**
+ * Adds a new comment to a task.
+ * 
+ * @param {number} taskId - The ID of the task to comment on.
+ * @param {number} userId - The ID of the user adding the comment.
+ * @param {string} content - The comment text.
+ * @returns {Promise&lt;number>} The ID of the inserted comment.
+ */
+const addComment = async (taskId, userId, content) => {
+    try {
+        const db = await getPool();
+        const result = await db.request()
+        .input("taskId", sql.Int, taskId)
+        .input("userId", sql.Int, userId)
+        .input("content", sql.NVarChar, content)
+        .query(`INSERT INTO comments (task_id, user_id, content)
+            OUTPUT INSERTED.comment_id
+            VALUES (@taskId, @userId, @content)`);
+        return result.recordset[0].comment_id;
+    } catch (err) {
+        console.error("Adding comment error", err);
+        throw err;
+    }
+};
+
+/**
+ * Retrieves all comments for a specific task, ordered by creation time (newest first).
+ * 
+ * @param {number} taskId - The ID of the task.
+ * @returns {Promise&lt;sql.IResult&lt;any>>} The result set containing comments.
+ */
+const getCommentByTask = async (taskId) => {
+    try {
+        const db = await getPool();
+        const result = await db.request()
+        .input("taskId", sql.Int, taskId)
+        .query("SELECT * FROM comments WHERE task_id = @taskId ORDER BY created_at DESC");
+        return result;
+    } catch (err) {
+        console.error("Getting comments error: ", err);
+        throw err;
+    }
+};
+
+/**
+ * Retrieves all comments made by a specific user.
+ * 
+ * @param {number} userId - The ID of the user.
+ * @returns {Promise&lt;sql.IResult&lt;any>>} The result set containing comments.
+ */
+const getCommentByUser = async (userId) => {
+    try {
+        const db = await getPool();
+        const result = await db.request()
+        .input("userId", sql.Int, userId)
+        .query("SELECT * FROM comments WHERE user_id = @userId");
+        return result;
+    } catch (err) {
+        console.error("Getting comments error: ", err);
+        throw err;
+    }
+};
+
+/**
+ * Updates the content of an existing comment.
+ * 
+ * @param {number} commentId - The ID of the comment to update.
+ * @param {string} content - The new content of the comment.
+ * @returns {Promise&lt;number>} Number of rows affected.
+ */
+const updateComment = async (commentId, content) => {
+    try {
+        const db = await getPool();
+        const result = await db.request()
+        .input("commentId", sql.Int, commentId)
+        .input("content", sql.NVarChar, content)
+        .query(`
+            UPDATE comments
+            SET content = @content, created_at = GETDATE()
+            WHERE comment_id = @commentId
+        `);
+        return result.rowsAffected[0];
+    } catch (error) {
+        console.error("Update comment error: ", error);
+        throw error;
+    }
+};
+
+/**
+ * Deletes a comment by its ID.
+ * 
+ * @param {number} commentId - The ID of the comment to delete.
+ * @returns {Promise&lt;number>} Number of rows affected.
+ */
+const deleteComment = async (commentId) => {
+    try {
+        const db = await getPool();
+        const result = await db.request()
+            .input('commentId', sql.Int, commentId)
+            .query("DELETE FROM comments WHERE comment_id = @commentId");
+        return result.rowsAffected[0];
+    } catch (err) {
+        console.error("Error deleting comment:", err);
+        throw err;
+    }
+};
+
+module.exports = {
+    addComment,
+    getCommentByTask,
+    getCommentByUser,
+    updateComment,
+    deleteComment
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addComment">addComment</a></li><li><a href="global.html#addCommentToTask">addCommentToTask</a></li><li><a href="global.html#addUser">addUser</a></li><li><a href="global.html#approveTask">approveTask</a></li><li><a href="global.html#assignTask">assignTask</a></li><li><a href="global.html#authenticateJWT">authenticateJWT</a></li><li><a href="global.html#createNotification">createNotification</a></li><li><a href="global.html#createTask">createTask</a></li><li><a href="global.html#createTaskAssignedEmail">createTaskAssignedEmail</a></li><li><a href="global.html#createTaskProgressUpdateEmail">createTaskProgressUpdateEmail</a></li><li><a href="global.html#deleteComment">deleteComment</a></li><li><a href="global.html#deleteDocument">deleteDocument</a></li><li><a href="global.html#deleteTask">deleteTask</a></li><li><a href="global.html#deleteUser">deleteUser</a></li><li><a href="global.html#downloadDocument">downloadDocument</a></li><li><a href="global.html#express">express</a></li><li><a href="global.html#fetchAllUsers">fetchAllUsers</a></li><li><a href="global.html#fetchDocumentById">fetchDocumentById</a></li><li><a href="global.html#fetchDocumentsByTask">fetchDocumentsByTask</a></li><li><a href="global.html#fetchDocumentsByUser">fetchDocumentsByUser</a></li><li><a href="global.html#fetchEmailByUserId">fetchEmailByUserId</a></li><li><a href="global.html#fetchNotificationsByUser">fetchNotificationsByUser</a></li><li><a href="global.html#fetchPasswordByEmail">fetchPasswordByEmail</a></li><li><a href="global.html#fetchPasswordByUserId">fetchPasswordByUserId</a></li><li><a href="global.html#fetchPasswordByUsername">fetchPasswordByUsername</a></li><li><a href="global.html#fetchTaskByAdmin">fetchTaskByAdmin</a></li><li><a href="global.html#fetchTaskById">fetchTaskById</a></li><li><a href="global.html#fetchTaskByUser">fetchTaskByUser</a></li><li><a href="global.html#fetchTaskByUserAndStatus">fetchTaskByUserAndStatus</a></li><li><a href="global.html#fetchUnreadNotificationsNumByUser">fetchUnreadNotificationsNumByUser</a></li><li><a href="global.html#fetchUserAssignedToTask">fetchUserAssignedToTask</a></li><li><a href="global.html#fetchUserByEmail">fetchUserByEmail</a></li><li><a href="global.html#fetchUserByName">fetchUserByName</a></li><li><a href="global.html#fetchUserByUserId">fetchUserByUserId</a></li><li><a href="global.html#fetchUserID">fetchUserID</a></li><li><a href="global.html#fetchUsernameByEmail">fetchUsernameByEmail</a></li><li><a href="global.html#generateCode">generateCode</a></li><li><a href="global.html#getAdminTasks">getAdminTasks</a></li><li><a href="global.html#getCommentByTask">getCommentByTask</a></li><li><a href="global.html#getCommentByUser">getCommentByUser</a></li><li><a href="global.html#getDocumentIdForTask">getDocumentIdForTask</a></li><li><a href="global.html#getPool">getPool</a></li><li><a href="global.html#getRecentComment">getRecentComment</a></li><li><a href="global.html#getTaskComments">getTaskComments</a></li><li><a href="global.html#getUnreadCountByUser">getUnreadCountByUser</a></li><li><a href="global.html#getUserTasks">getUserTasks</a></li><li><a href="global.html#initializePool">initializePool</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#makeTask">makeTask</a></li><li><a href="global.html#markNotificationAsRead">markNotificationAsRead</a></li><li><a href="global.html#removeComment">removeComment</a></li><li><a href="global.html#searchUser">searchUser</a></li><li><a href="global.html#sendCodeEmail">sendCodeEmail</a></li><li><a href="global.html#sendNotificationEmail">sendNotificationEmail</a></li><li><a href="global.html#tempCodes">tempCodes</a></li><li><a href="global.html#updateComment">updateComment</a></li><li><a href="global.html#updateDepartment">updateDepartment</a></li><li><a href="global.html#updateDocument">updateDocument</a></li><li><a href="global.html#updateEmail">updateEmail</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateTask">updateTask</a></li><li><a href="global.html#updateTaskStatus">updateTaskStatus</a></li><li><a href="global.html#uploadDocument">uploadDocument</a></li><li><a href="global.html#uploadMiddleware">uploadMiddleware</a></li><li><a href="global.html#verifyCode">verifyCode</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri May 02 2025 15:20:47 GMT-0700 (Pacific Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

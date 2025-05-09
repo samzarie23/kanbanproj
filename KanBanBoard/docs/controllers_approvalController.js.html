@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: controllers/approvalController.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: controllers/approvalController.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { fetchTaskById, updateTaskStatus, fetchUserAssignedToTask } = require('../models/taskModel.js');
+const { fetchUserByUserId } = require('../models/userModel.js');
+const { sendNotificationEmail, createTaskProgressUpdateEmail } = require('./2faEmail.js');
+const { createNotification } = require('../models/notificationModel.js');
+
+/**
+ * Updates the status of a task and notifies the task creator via email and notification.
+ * Prevents non-admin users from setting the status to "approved".
+ *
+ * @param {import('express').Request} req - The request object, expected to include `taskId` and `newStatus` in the body and the `user` in req.user.
+ * @param {import('express').Response} res - The response object used to send back HTTP responses.
+ */
+exports.updateTask = async (req, res) => {
+    try {
+        const taskId = req.body.taskId;
+        const newStatus = req.body.newStatus;
+        const updatedTask = await updateTaskStatus(taskId, newStatus);
+
+        // prevent non-admin users from setting the status to 'approved'
+        if(newStatus.toLowerCase() === 'approved' &amp;&amp; req.user.role.toLowerCase() !== 'admin') {
+            return res.status(403).json({ message: 'Unauthorized: You cannot approve tasks.' });
+        }
+
+        // send notification email
+        const task = await fetchTaskById(taskId);
+        const admin = await fetchUserByUserId(task.created_by);
+        const user = await fetchUserByUserId(req.user.id);
+        sendNotificationEmail(admin.email, `Task Alert: ${task.title} status has changed`, createTaskProgressUpdateEmail(admin.username, task, user.username));
+        await createNotification(task.created_by, 'Task Update', `Task "${task.title}" status is now "${newStatus}"`);
+
+        res.status(200).json({ message: 'Task status updated successfully', task: task });
+    } catch (err) {
+        console.log("error updating task: ", err);
+        res.status(500).json({ message: 'Error updating task status' });
+    }
+};
+
+/**
+ * Allows an admin to approve a task.
+ * Sends a notification to the assigned user after approval.
+ *
+ * @param {import('express').Request} req - The request object, expected to include `taskId` in the body and the authenticated admin in req.user.
+ * @param {import('express').Response} res - The response object used to send back HTTP responses.
+ */
+exports.approveTask = async (req, res) => {
+    try {
+        // make sure the user has admin privileges before proceeding.
+        if (!req.user || req.user.role.toLowerCase() !== 'admin') {
+            return res.status(403).json({ message: 'Forbidden: Only admin users can approve tasks.' });
+        }
+
+        const taskId = req.body.taskId;
+        const approvedTask = await updateTaskStatus(taskId, "Approved");
+        const task = await fetchTaskById(taskId);
+        const taskAssigned = await fetchUserAssignedToTask(taskId);
+        await createNotification(taskAssigned[0].user_id, 'Task Update', `Task "${task.title}" status is now "${task.status}"`);
+
+        res.status(200).json({ message: 'Task approved' });
+    } catch (err) {
+        console.log("error approving task: ", err);
+        res.status(500).json({ message: 'Error approving task' });
+    }
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addComment">addComment</a></li><li><a href="global.html#addCommentToTask">addCommentToTask</a></li><li><a href="global.html#addUser">addUser</a></li><li><a href="global.html#approveTask">approveTask</a></li><li><a href="global.html#assignTask">assignTask</a></li><li><a href="global.html#authenticateJWT">authenticateJWT</a></li><li><a href="global.html#createNotification">createNotification</a></li><li><a href="global.html#createTask">createTask</a></li><li><a href="global.html#createTaskAssignedEmail">createTaskAssignedEmail</a></li><li><a href="global.html#createTaskProgressUpdateEmail">createTaskProgressUpdateEmail</a></li><li><a href="global.html#deleteComment">deleteComment</a></li><li><a href="global.html#deleteDocument">deleteDocument</a></li><li><a href="global.html#deleteTask">deleteTask</a></li><li><a href="global.html#deleteUser">deleteUser</a></li><li><a href="global.html#downloadDocument">downloadDocument</a></li><li><a href="global.html#express">express</a></li><li><a href="global.html#fetchAllUsers">fetchAllUsers</a></li><li><a href="global.html#fetchDocumentById">fetchDocumentById</a></li><li><a href="global.html#fetchDocumentsByTask">fetchDocumentsByTask</a></li><li><a href="global.html#fetchDocumentsByUser">fetchDocumentsByUser</a></li><li><a href="global.html#fetchEmailByUserId">fetchEmailByUserId</a></li><li><a href="global.html#fetchNotificationsByUser">fetchNotificationsByUser</a></li><li><a href="global.html#fetchPasswordByEmail">fetchPasswordByEmail</a></li><li><a href="global.html#fetchPasswordByUserId">fetchPasswordByUserId</a></li><li><a href="global.html#fetchPasswordByUsername">fetchPasswordByUsername</a></li><li><a href="global.html#fetchTaskByAdmin">fetchTaskByAdmin</a></li><li><a href="global.html#fetchTaskById">fetchTaskById</a></li><li><a href="global.html#fetchTaskByUser">fetchTaskByUser</a></li><li><a href="global.html#fetchTaskByUserAndStatus">fetchTaskByUserAndStatus</a></li><li><a href="global.html#fetchUnreadNotificationsNumByUser">fetchUnreadNotificationsNumByUser</a></li><li><a href="global.html#fetchUserAssignedToTask">fetchUserAssignedToTask</a></li><li><a href="global.html#fetchUserByEmail">fetchUserByEmail</a></li><li><a href="global.html#fetchUserByName">fetchUserByName</a></li><li><a href="global.html#fetchUserByUserId">fetchUserByUserId</a></li><li><a href="global.html#fetchUserID">fetchUserID</a></li><li><a href="global.html#fetchUsernameByEmail">fetchUsernameByEmail</a></li><li><a href="global.html#generateCode">generateCode</a></li><li><a href="global.html#getAdminTasks">getAdminTasks</a></li><li><a href="global.html#getCommentByTask">getCommentByTask</a></li><li><a href="global.html#getCommentByUser">getCommentByUser</a></li><li><a href="global.html#getDocumentIdForTask">getDocumentIdForTask</a></li><li><a href="global.html#getPool">getPool</a></li><li><a href="global.html#getRecentComment">getRecentComment</a></li><li><a href="global.html#getTaskComments">getTaskComments</a></li><li><a href="global.html#getUnreadCountByUser">getUnreadCountByUser</a></li><li><a href="global.html#getUserTasks">getUserTasks</a></li><li><a href="global.html#initializePool">initializePool</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#makeTask">makeTask</a></li><li><a href="global.html#markNotificationAsRead">markNotificationAsRead</a></li><li><a href="global.html#removeComment">removeComment</a></li><li><a href="global.html#searchUser">searchUser</a></li><li><a href="global.html#sendCodeEmail">sendCodeEmail</a></li><li><a href="global.html#sendNotificationEmail">sendNotificationEmail</a></li><li><a href="global.html#tempCodes">tempCodes</a></li><li><a href="global.html#updateComment">updateComment</a></li><li><a href="global.html#updateDepartment">updateDepartment</a></li><li><a href="global.html#updateDocument">updateDocument</a></li><li><a href="global.html#updateEmail">updateEmail</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateTask">updateTask</a></li><li><a href="global.html#updateTaskStatus">updateTaskStatus</a></li><li><a href="global.html#uploadDocument">uploadDocument</a></li><li><a href="global.html#uploadMiddleware">uploadMiddleware</a></li><li><a href="global.html#verifyCode">verifyCode</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri May 02 2025 15:20:47 GMT-0700 (Pacific Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
